@@ -1,0 +1,33 @@
+# Supernan Video Dubbing Pipeline — Dependencies
+# ================================================
+# Target: Google Colab Free Tier (T4, 15GB VRAM)
+# Budget: ₹0 — all open-source (except Sarvam AI free-tier API)
+#
+# Install: pip install -r requirements.txt
+#
+# Additional repos to clone (not pip-installable):
+#   git clone https://github.com/Rudrabha/Wav2Lip.git
+#   git clone https://github.com/sczhou/CodeFormer.git
+#   cd CodeFormer && pip install -r requirements.txt && python basicsr/setup.py develop
+
+# ── Core ML ──────────────────────────────────────
+torch>=2.0.0
+torchaudio>=2.0.0
+torchvision>=0.15.0
+
+# ── Transcription & Translation (Steps 2-4) ─────
+# Uses Sarvam AI REST API — only needs requests
+requests>=2.28.0
+
+# ── Voice Cloning (Step 5) ───────────────────────
+TTS>=0.22.0                       # Coqui TTS (includes XTTSv2)
+pydub>=0.25.1                     # Audio manipulation + time-stretch
+
+# ── Face Restoration (Step 6b) ───────────────────
+basicsr>=1.4.2                    # Required by CodeFormer
+facexlib>=0.3.0                   # Face detection/parsing
+
+# ── Utilities ────────────────────────────────────
+numpy>=1.24.0
+opencv-python>=4.8.0
+scipy>=1.10.0

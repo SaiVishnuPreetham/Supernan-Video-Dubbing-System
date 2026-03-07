@@ -1,0 +1,8 @@
+# Ignore cache folders
+__pycache__/
+.pytest_cache/
+
+# Ignore local video/audio assets
+
+# Ignore AI planning files
+plan.md
