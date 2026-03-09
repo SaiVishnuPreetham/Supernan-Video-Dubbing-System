@@ -37,9 +37,9 @@ def lip_sync_video(
     wav2lip_dir: Optional[str] = None,
     checkpoint: str = "wav2lip_gan.pth",
     device: Optional[str] = None,
-    resize_factor: int = 1,
-    face_det_batch_size: int = 8,
-    wav2lip_batch_size: int = 16,
+    resize_factor: int = 2,
+    face_det_batch_size: int = 4,
+    wav2lip_batch_size: int = 8,
 ) -> dict:
     """
     Apply Wav2Lip lip-sync to a video using the given audio.
@@ -131,11 +131,11 @@ def lip_sync_video(
             cwd=wav2lip_dir,  # Run from Wav2Lip directory for relative imports
             capture_output=True,
             text=True,
-            timeout=600,  # 10-minute timeout for GPU inference
+            timeout=1800,  # 30-minute timeout for GPU inference
         )
     except subprocess.TimeoutExpired:
         raise RuntimeError(
-            "Wav2Lip inference timed out after 10 minutes. "
+            "Wav2Lip inference timed out after 30 minutes. "
             "This may indicate a GPU memory issue."
         )
     

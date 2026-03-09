@@ -84,17 +84,32 @@ def clone_voice_and_speak(
     tts = TTS("tts_models/multilingual/multi-dataset/xtts_v2")
     tts.to(device)
     
-    # ── Generate speech ──────────────────────────────────────────────────
+    # ── Split text into chunks under XTTSv2's 150-char limit ─────────────
+    CHAR_LIMIT = 140  # Keep under 150 with some margin
+    chunks = _split_text_for_tts(hindi_text, CHAR_LIMIT)
+    logger.info(f"Split text into {len(chunks)} chunk(s) for TTS")
+    
+    # ── Generate speech for each chunk ────────────────────────────────────
+    chunk_audio_paths = []
+    for i, chunk in enumerate(chunks):
+        chunk_path = os.path.join(output_dir, f"hindi_chunk_{i}.wav")
+        logger.info(f"Synthesizing chunk {i+1}/{len(chunks)} ({len(chunk)} chars)...")
+        
+        tts.tts_to_file(
+            text=chunk,
+            file_path=chunk_path,
+            speaker_wav=reference_audio,   # Voice to clone
+            language=language,              # Target language
+        )
+        chunk_audio_paths.append(chunk_path)
+    
+    # ── Concatenate chunks into one audio file ────────────────────────────
     raw_audio_path = os.path.join(output_dir, "hindi_raw.wav")
-    
-    logger.info("Synthesizing Hindi speech with voice cloning...")
-    
-    tts.tts_to_file(
-        text=hindi_text,
-        file_path=raw_audio_path,
-        speaker_wav=reference_audio,   # Voice to clone
-        language=language,              # Target language
-    )
+    if len(chunk_audio_paths) == 1:
+        import shutil
+        shutil.copy2(chunk_audio_paths[0], raw_audio_path)
+    else:
+        _concatenate_audio(chunk_audio_paths, raw_audio_path)
     
     # Get duration of generated audio
     raw_duration = get_media_duration(raw_audio_path)
@@ -155,6 +170,56 @@ def clone_voice_and_speak(
         "stretch_applied": stretch_applied,
         "stretch_ratio": round(stretch_ratio, 3),
     }
+
+
+# ---------------------------------------------------------------------------
+# Text chunking for XTTSv2
+# ---------------------------------------------------------------------------
+
+def _split_text_for_tts(text: str, max_chars: int = 140) -> list:
+    """
+    Split text into chunks under the character limit, breaking at sentence boundaries.
+    """
+    import re
+    # Split at sentence-ending punctuation
+    sentences = re.split(r'(?<=[।\.\!\?])', text)
+    sentences = [s.strip() for s in sentences if s.strip()]
+    
+    chunks = []
+    current = ""
+    for sentence in sentences:
+        if len(current) + len(sentence) + 1 <= max_chars:
+            current = (current + " " + sentence).strip()
+        else:
+            if current:
+                chunks.append(current)
+            # If a single sentence exceeds the limit, split it by words
+            if len(sentence) > max_chars:
+                words = sentence.split()
+                current = ""
+                for word in words:
+                    if len(current) + len(word) + 1 <= max_chars:
+                        current = (current + " " + word).strip()
+                    else:
+                        if current:
+                            chunks.append(current)
+                        current = word
+            else:
+                current = sentence
+    if current:
+        chunks.append(current)
+    
+    return chunks if chunks else [text]
+
+
+def _concatenate_audio(audio_paths: list, output_path: str) -> None:
+    """Concatenate multiple WAV files into one."""
+    from pydub import AudioSegment
+    combined = AudioSegment.empty()
+    for path in audio_paths:
+        combined += AudioSegment.from_wav(path)
+    combined.export(output_path, format="wav")
+    logger.info(f"Concatenated {len(audio_paths)} audio chunks → {output_path}")
 
 
 # ---------------------------------------------------------------------------
